@@ -29,6 +29,15 @@ const api = {
     const res = await fetch(`${API_URL}/users/${id}/vouchers`);
     return await res.json();
   },
+  uploadDocument: async (id, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${API_URL}/users/${id}/documents/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    return await res.json();
+  },
   getChatHistory: async (id) => {
     const res = await fetch(`${API_URL}/users/${id}/chat`);
     return await res.json();
@@ -298,7 +307,28 @@ function Wallet({ user }) {
           </div>
         ))}
 
-        <h3 className="section-title" style={{marginTop: '24px'}}>Verified Documents</h3>
+        <h3 className="section-title" style={{marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+          Verified Documents
+          <label className="btn-outline" style={{padding: '6px 12px', fontSize: '0.8rem', width: 'auto', margin: 0, cursor: 'pointer', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '16px'}}>
+            <input type="file" accept="image/*" style={{display: 'none'}} onChange={async (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+              const toastId = toast.loading("Scanning document with AI...");
+              try {
+                const res = await api.uploadDocument(user.id, file);
+                if (res.status === 'rejected') {
+                  toast.error(`Rejected: Document is blurry! (Score: ${res.variance.toFixed(1)})`, { id: toastId, duration: 4000 });
+                } else {
+                  toast.success("Document verified & uploaded!", { id: toastId });
+                  setTimeout(() => window.location.reload(), 1000);
+                }
+              } catch (err) {
+                toast.error("Upload failed", { id: toastId });
+              }
+            }} />
+            + Upload
+          </label>
+        </h3>
         {user.documents.map(doc => (
           <div key={doc.id} className="feature-box" style={{padding: '12px 16px', marginBottom: '8px'}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>

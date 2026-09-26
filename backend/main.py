@@ -1,10 +1,12 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 import models, schemas
 from database import engine, get_db
 import google.generativeai as genai
 import os
+import cv2
+import numpy as np
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -68,6 +70,53 @@ def get_alerts(user_id: int, db: Session = Depends(get_db)):
 def get_vouchers(user_id: int, db: Session = Depends(get_db)):
     vouchers = db.query(models.Voucher).filter(models.Voucher.user_id == user_id).all()
     return vouchers
+
+@app.post("/users/{user_id}/documents/upload")
+async def upload_document(user_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    # Read the image file into a numpy array
+    contents = await file.read()
+    nparr = np.frombuffer(contents, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    
+    if img is None:
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    # Calculate blur using Laplacian variance
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    variance = cv2.Laplacian(gray, cv2.CV_64F).var()
+    
+    # Threshold for blurriness (can be tuned, usually 100 is a good baseline)
+    is_blurry = variance < 100.0
+    
+    if is_blurry:
+        # Create an Auto-Triage Alert
+        alert = models.Alert(
+            user_id=user_id,
+            type="error",
+            title="Action Required: Blurry Document",
+            time="Just now",
+            text=f"Your {file.filename} was detected as too blurry by our AI. Variance: {variance:.2f}. Please upload a clearer photo.",
+            action="Open Camera & Fix Now"
+        )
+        db.add(alert)
+        db.commit()
+        return {"status": "rejected", "message": "Document is too blurry", "variance": variance}
+    
+    # If clear, save the document
+    import uuid
+    doc = models.Document(
+        id=f"DOC-{str(uuid.uuid4())[:8]}",
+        user_id=user_id,
+        name=file.filename,
+        type="upload",
+        source="Manual Upload",
+        verification_status="pending",
+        uploaded_at="Just now",
+        file_size=f"{len(contents) // 1024} KB"
+    )
+    db.add(doc)
+    db.commit()
+    return {"status": "accepted", "message": "Document uploaded successfully", "variance": variance}
 
 @app.get("/mentors", response_model=list[schemas.Mentor])
 def get_mentors(db: Session = Depends(get_db)):
