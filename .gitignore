@@ -1,0 +1,7 @@
+node_modules/
+backend/venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+backend/mota_scholar.db
