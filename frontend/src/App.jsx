@@ -4,52 +4,101 @@ import { Home, FolderOpen, Bot, Bell, Users, Sparkles, ShieldCheck, Fingerprint,
 import { Toaster, toast } from 'react-hot-toast';
 import './index.css';
 
-// --- API Service (Production Mode) ---
+// --- API Service (Production + Vercel Demo Fallback) ---
 const API_URL = "http://localhost:8000";
+
+const MOCK_USER = {
+  id: 1,
+  full_name: "Anita Birhor",
+  npci_mapped: false,
+  documents: [
+    { id: "DOC-001", name: "Aadhaar Card", source: "UIDAI / DigiLocker", file_size: "245 KB", verification_status: "verified" },
+    { id: "DOC-002", name: "ST Certificate", source: "State e-District", file_size: "180 KB", verification_status: "verified" }
+  ]
+};
 
 const api = {
   login: async (aadhaar_id) => {
-    const res = await fetch(`${API_URL}/users/login?aadhaar_id=${aadhaar_id}`, { method: 'POST' });
-    if (!res.ok) throw new Error("Invalid User");
-    return await res.json();
+    try {
+      const res = await fetch(`${API_URL}/users/login?aadhaar_id=${aadhaar_id}`, { method: 'POST' });
+      if (!res.ok) throw new Error("Invalid User");
+      return await res.json();
+    } catch (e) {
+      if (aadhaar_id === "123456789012") return MOCK_USER;
+      throw new Error("Invalid User");
+    }
   },
   getDashboard: async (id) => {
-    const res = await fetch(`${API_URL}/users/${id}/dashboard`);
-    return await res.json();
-  },
-  getAlerts: async (id) => {
-    const res = await fetch(`${API_URL}/users/${id}/alerts`);
-    return await res.json();
+    try {
+      const res = await fetch(`${API_URL}/users/${id}/dashboard`);
+      return await res.json();
+    } catch (e) {
+      return { total_received: 7875, active_applications: 1, documents_verified: 2, total_documents: 2 };
+    }
   },
   getMentors: async () => {
-    const res = await fetch(`${API_URL}/mentors`);
-    return await res.json();
+    try {
+      const res = await fetch(`${API_URL}/mentors`);
+      return await res.json();
+    } catch (e) {
+      return [
+        { id: 1, name: "Dr. Ramesh Munda", scheme: "NOS", location: "UK / Jharkhand", status: "Available for Chat", match: "98% Profile Match" },
+        { id: 2, name: "Suman Oraon", scheme: "Top Class Education", location: "IIT Delhi", status: "Busy", match: "85% Profile Match" }
+      ];
+    }
   },
   getVouchers: async (id) => {
-    const res = await fetch(`${API_URL}/users/${id}/vouchers`);
-    return await res.json();
+    try {
+      const res = await fetch(`${API_URL}/users/${id}/vouchers`);
+      return await res.json();
+    } catch (e) {
+      return [{ id: 1, title: "Hostel Fee Voucher", amount: 12500, status: "Sanctioned Upfront", description: "Scan to redeem at institution." }];
+    }
   },
   uploadDocument: async (id, file) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    const res = await fetch(`${API_URL}/users/${id}/documents/upload`, {
-      method: 'POST',
-      body: formData
-    });
-    return await res.json();
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`${API_URL}/users/${id}/documents/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      return await res.json();
+    } catch (e) {
+      // Mock OpenCV blur detection for Vercel
+      return { status: "accepted", message: "Mock upload success", variance: 150 };
+    }
   },
   getChatHistory: async (id) => {
-    const res = await fetch(`${API_URL}/users/${id}/chat`);
-    return await res.json();
+    try {
+      const res = await fetch(`${API_URL}/users/${id}/chat`);
+      return await res.json();
+    } catch (e) {
+      return [{ id: 1, sender: "bot", text: "Namaste! I am JAGO. Since you are on the Vercel demo, I am running in offline mock mode!" }];
+    }
+  },
+  getAlerts: async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/users/${id}/alerts`);
+      return await res.json();
+    } catch (e) {
+      return [
+        { id: 1, type: "error", title: "Action Required: Blurry Document", time: "Just now", text: "Income Certificate flagged as blurry.", action: "Fix Now" }
+      ];
+    }
   },
   sendChatMessage: async (id, text) => {
-    const timestamp = new Date().toISOString();
-    const res = await fetch(`${API_URL}/users/${id}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sender: 'user', text, timestamp })
-    });
-    return await res.json();
+    try {
+      const timestamp = new Date().toISOString();
+      const res = await fetch(`${API_URL}/users/${id}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sender: 'user', text, timestamp })
+      });
+      return await res.json();
+    } catch (e) {
+      return { sender: "bot", text: "I am currently in Vercel mock mode. Connect me to the Python backend to enable Gemini AI!" };
+    }
   }
 };
 
