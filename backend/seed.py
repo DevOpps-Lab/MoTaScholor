@@ -33,7 +33,8 @@ def seed_db():
         ifsc="SBIN0001234",
         current_class="XII",
         institution="Government Higher Secondary School, Hazaribagh",
-        udise_code="20150300701"
+        udise_code="20150300701",
+        npci_mapped=False
     )
     db.add(user)
     db.commit()
@@ -101,6 +102,10 @@ def seed_db():
     # Seed JagoMessages
     msg1 = models.JagoMessage(user_id=user.id, sender="bot", text="Namaste! I am JAGO, your AI Scholarship Assistant. How can I help you today?", timestamp="2026-09-26T10:00:00Z")
     db.add(msg1)
+
+    # Seed Vouchers
+    voucher1 = models.Voucher(user_id=user.id, title="Hostel Fee Voucher", amount=12500, status="Sanctioned Upfront", description="This digital voucher can only be scanned and redeemed by your verified institution.")
+    db.add(voucher1)
 
     db.commit()
     print("Seeding complete.")

@@ -57,6 +57,11 @@ def get_alerts(user_id: int, db: Session = Depends(get_db)):
     alerts = db.query(models.Alert).filter(models.Alert.user_id == user_id).all()
     return alerts
 
+@app.get("/users/{user_id}/vouchers", response_model=list[schemas.Voucher])
+def get_vouchers(user_id: int, db: Session = Depends(get_db)):
+    vouchers = db.query(models.Voucher).filter(models.Voucher.user_id == user_id).all()
+    return vouchers
+
 @app.get("/mentors", response_model=list[schemas.Mentor])
 def get_mentors(db: Session = Depends(get_db)):
     mentors = db.query(models.Mentor).all()

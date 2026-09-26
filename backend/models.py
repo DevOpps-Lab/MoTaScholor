@@ -25,12 +25,14 @@ class User(Base):
     current_class = Column(String)
     institution = Column(String)
     udise_code = Column(String)
+    npci_mapped = Column(Boolean, default=False)
     
     applications = relationship("Application", back_populates="user")
     documents = relationship("Document", back_populates="user")
     payments = relationship("Payment", back_populates="user")
     alerts = relationship("Alert", back_populates="user")
     chat_messages = relationship("JagoMessage", back_populates="user")
+    vouchers = relationship("Voucher", back_populates="user")
 
 
 class Application(Base):
@@ -120,3 +122,16 @@ class JagoMessage(Base):
     timestamp = Column(String)
 
     user = relationship("User", back_populates="chat_messages")
+
+
+class Voucher(Base):
+    __tablename__ = "vouchers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    title = Column(String)
+    amount = Column(Float)
+    status = Column(String) # e.g. "Sanctioned Upfront"
+    description = Column(String)
+
+    user = relationship("User", back_populates="vouchers")

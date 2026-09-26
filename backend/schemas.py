@@ -74,6 +74,7 @@ class UserBase(BaseModel):
     current_class: str
     institution: str
     udise_code: str
+    npci_mapped: bool
 
 class UserCreate(UserBase):
     pass
@@ -85,6 +86,7 @@ class User(UserBase):
     payments: List[Payment] = []
     alerts: List['Alert'] = []
     chat_messages: List['JagoMessage'] = []
+    vouchers: List['Voucher'] = []
 
     class Config:
         from_attributes = True
@@ -127,6 +129,19 @@ class JagoMessageCreate(JagoMessageBase):
     pass
 
 class JagoMessage(JagoMessageBase):
+    id: int
+    user_id: int
+
+    class Config:
+        from_attributes = True
+
+class VoucherBase(BaseModel):
+    title: str
+    amount: float
+    status: str
+    description: str
+
+class Voucher(VoucherBase):
     id: int
     user_id: int
 

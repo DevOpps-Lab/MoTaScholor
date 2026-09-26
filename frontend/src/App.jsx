@@ -25,6 +25,10 @@ const api = {
     const res = await fetch(`${API_URL}/mentors`);
     return await res.json();
   },
+  getVouchers: async (id) => {
+    const res = await fetch(`${API_URL}/users/${id}/vouchers`);
+    return await res.json();
+  },
   getChatHistory: async (id) => {
     const res = await fetch(`${API_URL}/users/${id}/chat`);
     return await res.json();
@@ -178,16 +182,18 @@ function Dashboard({ user }) {
       </header>
 
       {/* USP 1: Pre-Flight DBT Health Check */}
-      <div style={{padding: '24px 24px 0 24px'}}>
-        <div className="feature-box" style={{background: 'linear-gradient(135deg, #FEF2F2 0%, #FFFFFF 100%)', borderColor: '#FCA5A5'}}>
-          <div className="section-header" style={{marginBottom: '8px'}}>
-            <h4 style={{fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px'}}><ShieldCheck size={16} color="#DC2626"/> DBT Health Alert</h4>
-            <span className="status-badge" style={{background: '#FEE2E2', color: '#DC2626'}}>NPCI Unlinked</span>
+      {!user.npci_mapped && (
+        <div style={{padding: '24px 24px 0 24px'}}>
+          <div className="feature-box" style={{background: 'linear-gradient(135deg, #FEF2F2 0%, #FFFFFF 100%)', borderColor: '#FCA5A5'}}>
+            <div className="section-header" style={{marginBottom: '8px'}}>
+              <h4 style={{fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px'}}><ShieldCheck size={16} color="#DC2626"/> DBT Health Alert</h4>
+              <span className="status-badge" style={{background: '#FEE2E2', color: '#DC2626'}}>NPCI Unlinked</span>
+            </div>
+            <p className="text-sm text-gray" style={{marginBottom: '12px'}}>Your Aadhaar is not mapped to NPCI. Your scholarship funds will fail to transfer.</p>
+            <button className="btn-primary" style={{padding: '10px', fontSize: '0.9rem'}}>Open IPPB Account Instantly</button>
           </div>
-          <p className="text-sm text-gray" style={{marginBottom: '12px'}}>Your Aadhaar is not mapped to NPCI. Your scholarship funds will fail to transfer.</p>
-          <button className="btn-primary" style={{padding: '10px', fontSize: '0.9rem'}}>Open IPPB Account Instantly</button>
         </div>
-      </div>
+      )}
 
       {stats && (
         <div className="stats-grid">
@@ -254,6 +260,12 @@ function Dashboard({ user }) {
 
 // --- Wallet Component (Blockchain) ---
 function Wallet({ user }) {
+  const [vouchers, setVouchers] = useState([]);
+
+  useEffect(() => {
+    api.getVouchers(user.id).then(setVouchers);
+  }, [user.id]);
+
   return (
     <div className="dashboard">
       <header className="dashboard-header" style={{flexDirection: 'column', alignItems: 'flex-start'}}>
@@ -272,17 +284,19 @@ function Wallet({ user }) {
 
         {/* USP 3: e-RUPI Vouchers */}
         <h3 className="section-title" style={{marginTop: '24px'}}>e-RUPI Smart Vouchers</h3>
-        <div className="feature-box" style={{background: 'linear-gradient(135deg, #F0FDF4 0%, #FFFFFF 100%)', borderColor: '#BBF7D0'}}>
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
-            <div>
-              <h4 style={{fontSize: '1rem', color: '#166534'}}>Hostel Fee Voucher</h4>
-              <p className="text-xs" style={{color: '#15803D'}}>Sanctioned Upfront</p>
+        {vouchers.map(v => (
+          <div key={v.id} className="feature-box" style={{background: 'linear-gradient(135deg, #F0FDF4 0%, #FFFFFF 100%)', borderColor: '#BBF7D0', marginBottom: '12px'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
+              <div>
+                <h4 style={{fontSize: '1rem', color: '#166534'}}>{v.title}</h4>
+                <p className="text-xs" style={{color: '#15803D'}}>{v.status}</p>
+              </div>
+              <span style={{fontSize: '1.25rem', fontWeight: 800, color: '#166534'}}>₹{v.amount.toLocaleString('en-IN')}</span>
             </div>
-            <span style={{fontSize: '1.25rem', fontWeight: 800, color: '#166534'}}>₹12,500</span>
+            <p className="text-xs text-gray" style={{marginBottom: '12px'}}>{v.description}</p>
+            <button className="btn-primary" style={{padding: '8px', fontSize: '0.85rem', background: '#166534'}}>View QR Code</button>
           </div>
-          <p className="text-xs text-gray" style={{marginBottom: '12px'}}>This digital voucher can only be scanned and redeemed by your verified institution.</p>
-          <button className="btn-primary" style={{padding: '8px', fontSize: '0.85rem', background: '#166534'}}>View QR Code</button>
-        </div>
+        ))}
 
         <h3 className="section-title" style={{marginTop: '24px'}}>Verified Documents</h3>
         {user.documents.map(doc => (
