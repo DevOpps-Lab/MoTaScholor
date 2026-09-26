@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Home, FolderOpen, Bot, Bell, User as UserIcon, Sparkles, ShieldCheck, Fingerprint } from 'lucide-react';
+import { Home, FolderOpen, Bot, Bell, Users, Sparkles, ShieldCheck, Fingerprint, WifiOff } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import './index.css';
 
@@ -54,8 +54,8 @@ function BottomNav() {
       <Link to="/" className={`nav-item ${path === '/' ? 'active' : ''}`}><Home size={22} /><span>Home</span></Link>
       <Link to="/wallet" className={`nav-item ${path === '/wallet' ? 'active' : ''}`}><FolderOpen size={22} /><span>Wallet</span></Link>
       <Link to="/jago" className={`nav-item ${path === '/jago' ? 'active' : ''}`}><Bot size={22} /><span>JAGO AI</span></Link>
+      <Link to="/mentors" className={`nav-item ${path === '/mentors' ? 'active' : ''}`}><Users size={22} /><span>Eklavya</span></Link>
       <Link to="/alerts" className={`nav-item ${path === '/alerts' ? 'active' : ''}`}><Bell size={22} /><span>Alerts</span></Link>
-      <Link to="/profile" className={`nav-item ${path === '/profile' ? 'active' : ''}`}><UserIcon size={22} /><span>Profile</span></Link>
     </nav>
   );
 }
@@ -63,6 +63,16 @@ function BottomNav() {
 // --- Main App Component ---
 export default function App() {
   const [user, setUser] = useState(null);
+  const [isOffline, setIsOffline] = useState(false);
+
+  useEffect(() => {
+    window.addEventListener('offline', () => setIsOffline(true));
+    window.addEventListener('online', () => setIsOffline(false));
+    return () => {
+      window.removeEventListener('offline', () => setIsOffline(true));
+      window.removeEventListener('online', () => setIsOffline(false));
+    }
+  }, []);
 
   if (!user) {
     return <Login onLogin={setUser} />;
@@ -71,12 +81,18 @@ export default function App() {
   return (
     <BrowserRouter>
       <div className="app-container">
+        {isOffline && (
+          <div style={{background: '#FCA5A5', color: '#7F1D1D', padding: '6px', textAlign: 'center', fontSize: '0.75rem', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px'}}>
+            <WifiOff size={14} /> Offline Mode: Changes saved locally
+          </div>
+        )}
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Dashboard user={user} />} />
             <Route path="/wallet" element={<Wallet user={user} />} />
             <Route path="/jago" element={<JagoAI />} />
             <Route path="/alerts" element={<Alerts />} />
+            <Route path="/mentors" element={<Mentorship user={user} />} />
             <Route path="/profile" element={<div className="p-4"><h2>Profile</h2><p>{user.full_name}</p><button onClick={() => setUser(null)} className="btn-primary mt-4">Logout</button></div>} />
           </Routes>
         </main>
@@ -153,12 +169,17 @@ function Dashboard({ user }) {
 
   return (
     <div className="dashboard">
-      <header className="dashboard-header">
-        <div className="avatar">{user.full_name.charAt(0)}</div>
-        <div style={{flex: 1}}>
-          <p className="greeting">Good day,</p>
-          <h2>{user.full_name}</h2>
+      <header className="dashboard-header" style={{display: 'flex', justifyContent: 'space-between'}}>
+        <div style={{display: 'flex', alignItems: 'center', flex: 1}}>
+          <Link to="/profile" style={{textDecoration: 'none'}}>
+            <div className="avatar">{user.full_name.charAt(0)}</div>
+          </Link>
+          <div>
+            <p className="greeting">Good day,</p>
+            <h2>{user.full_name}</h2>
+          </div>
         </div>
+        <span className="status-badge" style={{background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0'}}>Sync Active</span>
       </header>
 
       {/* USP 1: Pre-Flight DBT Health Check */}
@@ -363,6 +384,43 @@ function JagoAI() {
           <input type="text" value={input} onChange={e => setInput(e.target.value)} placeholder="Type or speak in Santhali..." className="input-field" style={{padding: '12px'}} />
           <button type="submit" className="btn-primary" style={{width: 'auto', padding: '12px 20px'}}>Send</button>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// --- Eklavya Mentorship Hub ---
+function Mentorship({ user }) {
+  const mentors = [
+    { name: "Dr. Ramesh Munda", scheme: "National Overseas Scholarship (NOS)", location: "UK / Jharkhand", status: "Available for Chat", match: "98% Profile Match" },
+    { name: "Suman Oraon", scheme: "Top Class Education Scheme", location: "IIT Delhi", status: "Busy", match: "85% Profile Match" }
+  ];
+
+  return (
+    <div className="dashboard">
+      <header className="dashboard-header" style={{flexDirection: 'column', alignItems: 'flex-start'}}>
+        <h2>Eklavya Hub</h2>
+        <p className="text-sm text-gray" style={{marginTop: '4px'}}>Connect with tribal alumni & scholars</p>
+      </header>
+      <div className="section" style={{marginTop: '24px'}}>
+        
+        <div className="feature-box" style={{background: 'linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 100%)', borderColor: '#BFDBFE'}}>
+          <h4 style={{fontSize: '1rem', color: '#1D4ED8', marginBottom: '8px'}}>Peer-to-Peer Guidance</h4>
+          <p className="text-sm text-gray" style={{marginBottom: '12px'}}>Learn how to craft winning essays and prepare for interviews from students who successfully secured MoTA scholarships.</p>
+        </div>
+
+        <h3 className="section-title" style={{marginTop: '24px'}}>Recommended Mentors</h3>
+        {mentors.map((m, i) => (
+          <div key={i} className="app-card" style={{borderLeft: '4px solid var(--accent)'}}>
+            <div className="app-card-header">
+              <h4>{m.name}</h4>
+              <span className={`status-badge ${m.status === 'Busy' ? 'pending' : 'disbursed'}`}>{m.status}</span>
+            </div>
+            <p className="text-sm font-medium" style={{color: 'var(--primary)', marginBottom: '4px'}}>{m.scheme}</p>
+            <p className="text-xs text-gray" style={{marginBottom: '12px'}}>{m.location} • <Sparkles size={10}/> {m.match}</p>
+            <button className="btn-outline" style={{padding: '8px', fontSize: '0.85rem', width: 'auto'}}>Connect</button>
+          </div>
+        ))}
       </div>
     </div>
   );
