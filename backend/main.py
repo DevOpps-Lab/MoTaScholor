@@ -3,6 +3,13 @@ from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 import models, schemas
 from database import engine, get_db
+import google.generativeai as genai
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+ai_model = genai.GenerativeModel('gemini-1.5-flash')
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -78,15 +85,17 @@ def post_chat_message(user_id: int, message: schemas.JagoMessageCreate, db: Sess
     user_msg = models.JagoMessage(user_id=user_id, sender="user", text=message.text, timestamp=message.timestamp)
     db.add(user_msg)
     
-    # Process AI Response (Mock Logic for MVP)
-    query = message.text.lower()
-    reply = "I'm sorry, I couldn't understand. I am still learning!"
-    if "status" in query:
-        reply = "Your Pre-Matric Scholarship is currently Disbursed. Your Post-Matric application is Verified and awaiting Sanction."
-    elif "eligible" in query or "apply" in query:
-        reply = "Based on your AI Predictor score, you have a 92% match for the Top Class Education Scheme."
-    elif "document" in query:
-        reply = "You don't need to re-upload documents. Your Immutable Vault has already synced your Aadhaar and ST Certificate from DigiLocker."
+    # Get User Context
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    
+    # Process Real AI Response using Gemini
+    try:
+        context_prompt = f"You are JAGO, an AI Scholarship Assistant for the Ministry of Tribal Affairs (MoTA). You are talking to {user.full_name}, a {user.current_class} student. Keep your answers extremely concise (under 2 sentences), encouraging, and strictly related to education/scholarships. The student says: {message.text}"
+        
+        response = ai_model.generate_content(context_prompt)
+        reply = response.text
+    except Exception as e:
+        reply = "I'm having trouble connecting to my AI brain right now! Please make sure the API key is configured."
         
     bot_msg = models.JagoMessage(user_id=user_id, sender="bot", text=reply, timestamp=message.timestamp)
     db.add(bot_msg)
