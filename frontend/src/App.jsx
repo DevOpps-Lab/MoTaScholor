@@ -155,11 +155,23 @@ function Dashboard({ user }) {
     <div className="dashboard">
       <header className="dashboard-header">
         <div className="avatar">{user.full_name.charAt(0)}</div>
-        <div>
+        <div style={{flex: 1}}>
           <p className="greeting">Good day,</p>
           <h2>{user.full_name}</h2>
         </div>
       </header>
+
+      {/* USP 1: Pre-Flight DBT Health Check */}
+      <div style={{padding: '24px 24px 0 24px'}}>
+        <div className="feature-box" style={{background: 'linear-gradient(135deg, #FEF2F2 0%, #FFFFFF 100%)', borderColor: '#FCA5A5'}}>
+          <div className="section-header" style={{marginBottom: '8px'}}>
+            <h4 style={{fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px'}}><ShieldCheck size={16} color="#DC2626"/> DBT Health Alert</h4>
+            <span className="status-badge" style={{background: '#FEE2E2', color: '#DC2626'}}>NPCI Unlinked</span>
+          </div>
+          <p className="text-sm text-gray" style={{marginBottom: '12px'}}>Your Aadhaar is not mapped to NPCI. Your scholarship funds will fail to transfer.</p>
+          <button className="btn-primary" style={{padding: '10px', fontSize: '0.9rem'}}>Open IPPB Account Instantly</button>
+        </div>
+      </div>
 
       {stats && (
         <div className="stats-grid">
@@ -242,6 +254,20 @@ function Wallet({ user }) {
           <p className="text-sm text-gray">Your identity and certificates are cryptographically verified and cannot be tampered with.</p>
         </div>
 
+        {/* USP 3: e-RUPI Vouchers */}
+        <h3 className="section-title" style={{marginTop: '24px'}}>e-RUPI Smart Vouchers</h3>
+        <div className="feature-box" style={{background: 'linear-gradient(135deg, #F0FDF4 0%, #FFFFFF 100%)', borderColor: '#BBF7D0'}}>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
+            <div>
+              <h4 style={{fontSize: '1rem', color: '#166534'}}>Hostel Fee Voucher</h4>
+              <p className="text-xs" style={{color: '#15803D'}}>Sanctioned Upfront</p>
+            </div>
+            <span style={{fontSize: '1.25rem', fontWeight: 800, color: '#166534'}}>₹12,500</span>
+          </div>
+          <p className="text-xs text-gray" style={{marginBottom: '12px'}}>This digital voucher can only be scanned and redeemed by your verified institution.</p>
+          <button className="btn-primary" style={{padding: '8px', fontSize: '0.85rem', background: '#166534'}}>View QR Code</button>
+        </div>
+
         <h3 className="section-title" style={{marginTop: '24px'}}>Verified Documents</h3>
         {user.documents.map(doc => (
           <div key={doc.id} className="feature-box" style={{padding: '12px 16px', marginBottom: '8px'}}>
@@ -262,9 +288,9 @@ function Wallet({ user }) {
 // --- Alerts Component ---
 function Alerts() {
   const alerts = [
-    { id: 1, type: "success", title: "Smart Contract Disbursed", time: "10 mins ago", text: "₹5,250 has been disbursed directly to your SBI account via smart contract." },
-    { id: 2, type: "info", title: "DigiLocker Sync", time: "2 hours ago", text: "Your Class X Marksheet was automatically verified via DigiLocker node." },
-    { id: 3, type: "warning", title: "Deadline Approaching", time: "1 day ago", text: "National Fellowship (NFST) applications close in 5 days. You have a 88% Match Score." }
+    { id: 1, type: "error", title: "Action Required: Blurry Document", time: "Just now", text: "Your Income Certificate was flagged by the Nodal Officer as blurry.", action: "Open Camera & Fix Now" },
+    { id: 2, type: "success", title: "Smart Contract Disbursed", time: "10 mins ago", text: "₹5,250 has been disbursed directly to your SBI account via smart contract." },
+    { id: 3, type: "info", title: "DigiLocker Sync", time: "2 hours ago", text: "Your Class X Marksheet was automatically verified via DigiLocker node." }
   ];
 
   return (
@@ -274,12 +300,15 @@ function Alerts() {
       </header>
       <div className="section" style={{marginTop: '24px'}}>
         {alerts.map(a => (
-          <div key={a.id} className="feature-box" style={{padding: '16px', marginBottom: '12px'}}>
+          <div key={a.id} className="feature-box" style={{padding: '16px', marginBottom: '12px', border: a.type === 'error' ? '1.5px solid #FCA5A5' : ''}}>
             <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px'}}>
-              <h4 style={{fontSize: '1rem', color: a.type === 'success' ? '#047857' : a.type === 'warning' ? '#B45309' : '#1D4ED8'}}>{a.title}</h4>
+              <h4 style={{fontSize: '1rem', color: a.type === 'success' ? '#047857' : a.type === 'error' ? '#DC2626' : '#1D4ED8'}}>{a.title}</h4>
               <span className="text-xs text-gray">{a.time}</span>
             </div>
             <p className="text-sm text-gray">{a.text}</p>
+            {a.action && (
+               <button className="btn-primary" style={{marginTop: '12px', padding: '8px', fontSize: '0.85rem', background: '#DC2626'}}>{a.action}</button>
+            )}
           </div>
         ))}
       </div>
@@ -312,9 +341,12 @@ function JagoAI() {
 
   return (
     <div className="dashboard" style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
-      <header className="dashboard-header">
-        <div className="avatar" style={{width: 36, height: 36, fontSize: '1rem'}}>🤖</div>
-        <div><h2>JAGO AI</h2></div>
+      <header className="dashboard-header" style={{display: 'flex', justifyContent: 'space-between'}}>
+        <div style={{display: 'flex', alignItems: 'center'}}>
+          <div className="avatar" style={{width: 36, height: 36, fontSize: '1rem', marginRight: '12px'}}>🤖</div>
+          <div><h2>JAGO AI</h2></div>
+        </div>
+        <span className="ai-badge" style={{background: '#FFF7ED', color: '#C2410C', borderColor: '#FFEDD5'}}>🎙️ Bhashini Voice</span>
       </header>
       
       <div style={{flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px'}}>
@@ -327,7 +359,8 @@ function JagoAI() {
 
       <div style={{padding: '16px', background: 'var(--card-bg)', borderTop: '1px solid var(--border-color)'}}>
         <form onSubmit={send} style={{display: 'flex', gap: '8px'}}>
-          <input type="text" value={input} onChange={e => setInput(e.target.value)} placeholder="Ask JAGO anything..." className="input-field" style={{padding: '12px'}} />
+          <button type="button" className="btn-outline" style={{width: 'auto', margin: 0, padding: '12px', border: 'none', background: '#F3F4F6', color: '#4B5563', borderRadius: '50%'}}>🎤</button>
+          <input type="text" value={input} onChange={e => setInput(e.target.value)} placeholder="Type or speak in Santhali..." className="input-field" style={{padding: '12px'}} />
           <button type="submit" className="btn-primary" style={{width: 'auto', padding: '12px 20px'}}>Send</button>
         </form>
       </div>
