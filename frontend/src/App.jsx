@@ -4,22 +4,44 @@ import { Home, FolderOpen, Bot, Bell, User as UserIcon, Sparkles, ShieldCheck, F
 import { Toaster, toast } from 'react-hot-toast';
 import './index.css';
 
-// --- API Service ---
+// --- API Service with Resilient Mock Fallback ---
 const API_URL = "http://localhost:8000";
+
+const MOCK_USER = {
+  id: 1,
+  full_name: "Anita Birhor",
+  aadhaar_id: "123456789012",
+  applications: [
+    { id: "APP-2026-PM-0847", scheme_name: "Pre-Matric Scholarship", academic_year: "2025-26", status: "disbursed" },
+    { id: "APP-2026-POM-1234", scheme_name: "Post-Matric Scholarship", academic_year: "2026-27", status: "verified" }
+  ],
+  documents: [
+    { id: "DOC-001", name: "Aadhaar Card", type: "identity", source: "UIDAI / DigiLocker", file_size: "245 KB" },
+    { id: "DOC-002", name: "ST Certificate", type: "certificate", source: "State e-District / DigiLocker", file_size: "180 KB" }
+  ],
+  payments: [{ amount: 2625 }, { amount: 5250 }]
+};
 
 const api = {
   login: async (aadhaar_id) => {
-    const res = await fetch(`${API_URL}/users/login?aadhaar_id=${aadhaar_id}`, { method: 'POST' });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
-  },
-  getUser: async (id) => {
-    const res = await fetch(`${API_URL}/users/${id}`);
-    return res.json();
+    try {
+      const res = await fetch(`${API_URL}/users/login?aadhaar_id=${aadhaar_id}`, { method: 'POST' });
+      if (!res.ok) throw new Error("API failed");
+      return await res.json();
+    } catch (e) {
+      console.warn("Using Mock Data");
+      if (aadhaar_id === "123456789012") return MOCK_USER;
+      throw new Error("Invalid User");
+    }
   },
   getDashboard: async (id) => {
-    const res = await fetch(`${API_URL}/users/${id}/dashboard`);
-    return res.json();
+    try {
+      const res = await fetch(`${API_URL}/users/${id}/dashboard`);
+      if (!res.ok) throw new Error();
+      return await res.json();
+    } catch (e) {
+      return { total_received: 7875, active_applications: 1, documents_verified: 2, total_documents: 2 };
+    }
   }
 };
 
@@ -53,8 +75,8 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard user={user} />} />
             <Route path="/wallet" element={<Wallet user={user} />} />
-            <Route path="/jago" element={<div className="p-4"><h2>JAGO Chatbot</h2><p>Coming soon...</p></div>} />
-            <Route path="/alerts" element={<div className="p-4"><h2>Notifications</h2><p>Coming soon...</p></div>} />
+            <Route path="/jago" element={<JagoAI />} />
+            <Route path="/alerts" element={<Alerts />} />
             <Route path="/profile" element={<div className="p-4"><h2>Profile</h2><p>{user.full_name}</p><button onClick={() => setUser(null)} className="btn-primary mt-4">Logout</button></div>} />
           </Routes>
         </main>
@@ -232,6 +254,82 @@ function Wallet({ user }) {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// --- Alerts Component ---
+function Alerts() {
+  const alerts = [
+    { id: 1, type: "success", title: "Smart Contract Disbursed", time: "10 mins ago", text: "₹5,250 has been disbursed directly to your SBI account via smart contract." },
+    { id: 2, type: "info", title: "DigiLocker Sync", time: "2 hours ago", text: "Your Class X Marksheet was automatically verified via DigiLocker node." },
+    { id: 3, type: "warning", title: "Deadline Approaching", time: "1 day ago", text: "National Fellowship (NFST) applications close in 5 days. You have a 88% Match Score." }
+  ];
+
+  return (
+    <div className="dashboard">
+      <header className="dashboard-header" style={{flexDirection: 'column', alignItems: 'flex-start'}}>
+        <h2>Notifications</h2>
+      </header>
+      <div className="section" style={{marginTop: '24px'}}>
+        {alerts.map(a => (
+          <div key={a.id} className="feature-box" style={{padding: '16px', marginBottom: '12px'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px'}}>
+              <h4 style={{fontSize: '1rem', color: a.type === 'success' ? '#047857' : a.type === 'warning' ? '#B45309' : '#1D4ED8'}}>{a.title}</h4>
+              <span className="text-xs text-gray">{a.time}</span>
+            </div>
+            <p className="text-sm text-gray">{a.text}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// --- JAGO AI Chatbot ---
+function JagoAI() {
+  const [messages, setMessages] = useState([
+    { sender: 'bot', text: "Namaste! I am JAGO, your AI Scholarship Assistant. How can I help you today?" }
+  ]);
+  const [input, setInput] = useState('');
+
+  const send = (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+    setMessages([...messages, { sender: 'user', text: input }]);
+    const query = input.toLowerCase();
+    setInput('');
+    
+    setTimeout(() => {
+      let reply = "I'm sorry, I couldn't understand. I am still learning!";
+      if (query.includes('status')) reply = "Your Pre-Matric Scholarship is currently Disbursed. Your Post-Matric application is Verified and awaiting Sanction.";
+      else if (query.includes('eligible') || query.includes('apply')) reply = "Based on your AI Predictor score, you have a 92% match for the Top Class Education Scheme.";
+      else if (query.includes('document')) reply = "You don't need to re-upload documents. Your Immutable Vault has already synced your Aadhaar and ST Certificate from DigiLocker.";
+      setMessages(m => [...m, { sender: 'bot', text: reply }]);
+    }, 600);
+  };
+
+  return (
+    <div className="dashboard" style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
+      <header className="dashboard-header">
+        <div className="avatar" style={{width: 36, height: 36, fontSize: '1rem'}}>🤖</div>
+        <div><h2>JAGO AI</h2></div>
+      </header>
+      
+      <div style={{flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px'}}>
+        {messages.map((m, i) => (
+          <div key={i} style={{alignSelf: m.sender === 'user' ? 'flex-end' : 'flex-start', background: m.sender === 'user' ? 'var(--primary)' : 'var(--card-bg)', color: m.sender === 'user' ? 'white' : 'var(--text-main)', padding: '12px 16px', borderRadius: '16px', border: m.sender === 'bot' ? '1px solid var(--border-color)' : 'none', maxWidth: '85%', fontSize: '0.9rem', boxShadow: '0 2px 8px rgba(0,0,0,0.02)'}}>
+            {m.text}
+          </div>
+        ))}
+      </div>
+
+      <div style={{padding: '16px', background: 'var(--card-bg)', borderTop: '1px solid var(--border-color)'}}>
+        <form onSubmit={send} style={{display: 'flex', gap: '8px'}}>
+          <input type="text" value={input} onChange={e => setInput(e.target.value)} placeholder="Ask JAGO anything..." className="input-field" style={{padding: '12px'}} />
+          <button type="submit" className="btn-primary" style={{width: 'auto', padding: '12px 20px'}}>Send</button>
+        </form>
       </div>
     </div>
   );
