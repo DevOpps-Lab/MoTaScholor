@@ -87,6 +87,21 @@ def seed_db():
     )
     db.add(pay1)
 
+    # Seed Alerts
+    alert1 = models.Alert(user_id=user.id, type="error", title="Action Required: Blurry Document", time="Just now", text="Your Income Certificate was flagged by the Nodal Officer as blurry.", action="Open Camera & Fix Now")
+    alert2 = models.Alert(user_id=user.id, type="success", title="Smart Contract Disbursed", time="10 mins ago", text="₹5,250 has been disbursed directly to your SBI account via smart contract.")
+    alert3 = models.Alert(user_id=user.id, type="info", title="DigiLocker Sync", time="2 hours ago", text="Your Class X Marksheet was automatically verified via DigiLocker node.")
+    db.add_all([alert1, alert2, alert3])
+
+    # Seed Mentors
+    mentor1 = models.Mentor(name="Dr. Ramesh Munda", scheme="National Overseas Scholarship (NOS)", location="UK / Jharkhand", status="Available for Chat", match="98% Profile Match")
+    mentor2 = models.Mentor(name="Suman Oraon", scheme="Top Class Education Scheme", location="IIT Delhi", status="Busy", match="85% Profile Match")
+    db.add_all([mentor1, mentor2])
+
+    # Seed JagoMessages
+    msg1 = models.JagoMessage(user_id=user.id, sender="bot", text="Namaste! I am JAGO, your AI Scholarship Assistant. How can I help you today?", timestamp="2026-09-26T10:00:00Z")
+    db.add(msg1)
+
     db.commit()
     print("Seeding complete.")
     db.close()

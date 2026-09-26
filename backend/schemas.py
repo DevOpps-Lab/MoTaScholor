@@ -83,6 +83,54 @@ class User(UserBase):
     applications: List[Application] = []
     documents: List[Document] = []
     payments: List[Payment] = []
+    alerts: List['Alert'] = []
+    chat_messages: List['JagoMessage'] = []
 
     class Config:
         from_attributes = True
+
+class AlertBase(BaseModel):
+    type: str
+    title: str
+    time: str
+    text: str
+    action: Optional[str] = None
+
+class Alert(AlertBase):
+    id: int
+    user_id: int
+
+    class Config:
+        from_attributes = True
+
+
+class MentorBase(BaseModel):
+    name: str
+    scheme: str
+    location: str
+    status: str
+    match: str
+
+class Mentor(MentorBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+class JagoMessageBase(BaseModel):
+    sender: str
+    text: str
+    timestamp: str
+
+class JagoMessageCreate(JagoMessageBase):
+    pass
+
+class JagoMessage(JagoMessageBase):
+    id: int
+    user_id: int
+
+    class Config:
+        from_attributes = True
+
+User.model_rebuild()

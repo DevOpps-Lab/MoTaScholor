@@ -52,6 +52,43 @@ def get_dashboard_stats(user_id: int, db: Session = Depends(get_db)):
         "total_documents": total_docs
     }
 
+@app.get("/users/{user_id}/alerts", response_model=list[schemas.Alert])
+def get_alerts(user_id: int, db: Session = Depends(get_db)):
+    alerts = db.query(models.Alert).filter(models.Alert.user_id == user_id).all()
+    return alerts
+
+@app.get("/mentors", response_model=list[schemas.Mentor])
+def get_mentors(db: Session = Depends(get_db)):
+    mentors = db.query(models.Mentor).all()
+    return mentors
+
+@app.get("/users/{user_id}/chat", response_model=list[schemas.JagoMessage])
+def get_chat_history(user_id: int, db: Session = Depends(get_db)):
+    messages = db.query(models.JagoMessage).filter(models.JagoMessage.user_id == user_id).all()
+    return messages
+
+@app.post("/users/{user_id}/chat", response_model=schemas.JagoMessage)
+def post_chat_message(user_id: int, message: schemas.JagoMessageCreate, db: Session = Depends(get_db)):
+    # Save user message
+    user_msg = models.JagoMessage(user_id=user_id, sender="user", text=message.text, timestamp=message.timestamp)
+    db.add(user_msg)
+    
+    # Process AI Response (Mock Logic for MVP)
+    query = message.text.lower()
+    reply = "I'm sorry, I couldn't understand. I am still learning!"
+    if "status" in query:
+        reply = "Your Pre-Matric Scholarship is currently Disbursed. Your Post-Matric application is Verified and awaiting Sanction."
+    elif "eligible" in query or "apply" in query:
+        reply = "Based on your AI Predictor score, you have a 92% match for the Top Class Education Scheme."
+    elif "document" in query:
+        reply = "You don't need to re-upload documents. Your Immutable Vault has already synced your Aadhaar and ST Certificate from DigiLocker."
+        
+    bot_msg = models.JagoMessage(user_id=user_id, sender="bot", text=reply, timestamp=message.timestamp)
+    db.add(bot_msg)
+    db.commit()
+    db.refresh(bot_msg)
+    return bot_msg
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

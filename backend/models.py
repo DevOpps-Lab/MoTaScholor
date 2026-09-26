@@ -29,6 +29,8 @@ class User(Base):
     applications = relationship("Application", back_populates="user")
     documents = relationship("Document", back_populates="user")
     payments = relationship("Payment", back_populates="user")
+    alerts = relationship("Alert", back_populates="user")
+    chat_messages = relationship("JagoMessage", back_populates="user")
 
 
 class Application(Base):
@@ -81,3 +83,40 @@ class Payment(Base):
     
     user = relationship("User", back_populates="payments")
     application = relationship("Application", back_populates="payments")
+
+
+class Alert(Base):
+    __tablename__ = "alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    type = Column(String) # success, info, warning, error
+    title = Column(String)
+    time = Column(String)
+    text = Column(String)
+    action = Column(String, nullable=True)
+
+    user = relationship("User", back_populates="alerts")
+
+
+class Mentor(Base):
+    __tablename__ = "mentors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    scheme = Column(String)
+    location = Column(String)
+    status = Column(String) # Busy, Available for Chat
+    match = Column(String) # e.g. "98% Profile Match"
+
+
+class JagoMessage(Base):
+    __tablename__ = "jago_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    sender = Column(String) # "user" or "bot"
+    text = Column(String)
+    timestamp = Column(String)
+
+    user = relationship("User", back_populates="chat_messages")

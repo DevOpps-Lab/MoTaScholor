@@ -4,44 +4,39 @@ import { Home, FolderOpen, Bot, Bell, Users, Sparkles, ShieldCheck, Fingerprint,
 import { Toaster, toast } from 'react-hot-toast';
 import './index.css';
 
-// --- API Service with Resilient Mock Fallback ---
+// --- API Service (Production Mode) ---
 const API_URL = "http://localhost:8000";
-
-const MOCK_USER = {
-  id: 1,
-  full_name: "Anita Birhor",
-  aadhaar_id: "123456789012",
-  applications: [
-    { id: "APP-2026-PM-0847", scheme_name: "Pre-Matric Scholarship", academic_year: "2025-26", status: "disbursed" },
-    { id: "APP-2026-POM-1234", scheme_name: "Post-Matric Scholarship", academic_year: "2026-27", status: "verified" }
-  ],
-  documents: [
-    { id: "DOC-001", name: "Aadhaar Card", type: "identity", source: "UIDAI / DigiLocker", file_size: "245 KB" },
-    { id: "DOC-002", name: "ST Certificate", type: "certificate", source: "State e-District / DigiLocker", file_size: "180 KB" }
-  ],
-  payments: [{ amount: 2625 }, { amount: 5250 }]
-};
 
 const api = {
   login: async (aadhaar_id) => {
-    try {
-      const res = await fetch(`${API_URL}/users/login?aadhaar_id=${aadhaar_id}`, { method: 'POST' });
-      if (!res.ok) throw new Error("API failed");
-      return await res.json();
-    } catch (e) {
-      console.warn("Using Mock Data");
-      if (aadhaar_id === "123456789012") return MOCK_USER;
-      throw new Error("Invalid User");
-    }
+    const res = await fetch(`${API_URL}/users/login?aadhaar_id=${aadhaar_id}`, { method: 'POST' });
+    if (!res.ok) throw new Error("Invalid User");
+    return await res.json();
   },
   getDashboard: async (id) => {
-    try {
-      const res = await fetch(`${API_URL}/users/${id}/dashboard`);
-      if (!res.ok) throw new Error();
-      return await res.json();
-    } catch (e) {
-      return { total_received: 7875, active_applications: 1, documents_verified: 2, total_documents: 2 };
-    }
+    const res = await fetch(`${API_URL}/users/${id}/dashboard`);
+    return await res.json();
+  },
+  getAlerts: async (id) => {
+    const res = await fetch(`${API_URL}/users/${id}/alerts`);
+    return await res.json();
+  },
+  getMentors: async () => {
+    const res = await fetch(`${API_URL}/mentors`);
+    return await res.json();
+  },
+  getChatHistory: async (id) => {
+    const res = await fetch(`${API_URL}/users/${id}/chat`);
+    return await res.json();
+  },
+  sendChatMessage: async (id, text) => {
+    const timestamp = new Date().toISOString();
+    const res = await fetch(`${API_URL}/users/${id}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sender: 'user', text, timestamp })
+    });
+    return await res.json();
   }
 };
 
@@ -90,8 +85,8 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard user={user} />} />
             <Route path="/wallet" element={<Wallet user={user} />} />
-            <Route path="/jago" element={<JagoAI />} />
-            <Route path="/alerts" element={<Alerts />} />
+            <Route path="/jago" element={<JagoAI user={user} />} />
+            <Route path="/alerts" element={<Alerts user={user} />} />
             <Route path="/mentors" element={<Mentorship user={user} />} />
             <Route path="/profile" element={<div className="p-4"><h2>Profile</h2><p>{user.full_name}</p><button onClick={() => setUser(null)} className="btn-primary mt-4">Logout</button></div>} />
           </Routes>
@@ -307,12 +302,12 @@ function Wallet({ user }) {
 }
 
 // --- Alerts Component ---
-function Alerts() {
-  const alerts = [
-    { id: 1, type: "error", title: "Action Required: Blurry Document", time: "Just now", text: "Your Income Certificate was flagged by the Nodal Officer as blurry.", action: "Open Camera & Fix Now" },
-    { id: 2, type: "success", title: "Smart Contract Disbursed", time: "10 mins ago", text: "₹5,250 has been disbursed directly to your SBI account via smart contract." },
-    { id: 3, type: "info", title: "DigiLocker Sync", time: "2 hours ago", text: "Your Class X Marksheet was automatically verified via DigiLocker node." }
-  ];
+function Alerts({ user }) {
+  const [alerts, setAlerts] = useState([]);
+
+  useEffect(() => {
+    api.getAlerts(user.id).then(setAlerts);
+  }, [user.id]);
 
   return (
     <div className="dashboard">
@@ -338,26 +333,23 @@ function Alerts() {
 }
 
 // --- JAGO AI Chatbot ---
-function JagoAI() {
-  const [messages, setMessages] = useState([
-    { sender: 'bot', text: "Namaste! I am JAGO, your AI Scholarship Assistant. How can I help you today?" }
-  ]);
+function JagoAI({ user }) {
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
 
-  const send = (e) => {
+  useEffect(() => {
+    api.getChatHistory(user.id).then(setMessages);
+  }, [user.id]);
+
+  const send = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
-    setMessages([...messages, { sender: 'user', text: input }]);
-    const query = input.toLowerCase();
+    const userText = input;
     setInput('');
+    setMessages(prev => [...prev, { sender: 'user', text: userText }]);
     
-    setTimeout(() => {
-      let reply = "I'm sorry, I couldn't understand. I am still learning!";
-      if (query.includes('status')) reply = "Your Pre-Matric Scholarship is currently Disbursed. Your Post-Matric application is Verified and awaiting Sanction.";
-      else if (query.includes('eligible') || query.includes('apply')) reply = "Based on your AI Predictor score, you have a 92% match for the Top Class Education Scheme.";
-      else if (query.includes('document')) reply = "You don't need to re-upload documents. Your Immutable Vault has already synced your Aadhaar and ST Certificate from DigiLocker.";
-      setMessages(m => [...m, { sender: 'bot', text: reply }]);
-    }, 600);
+    const botReply = await api.sendChatMessage(user.id, userText);
+    setMessages(prev => [...prev, botReply]);
   };
 
   return (
@@ -391,10 +383,11 @@ function JagoAI() {
 
 // --- Eklavya Mentorship Hub ---
 function Mentorship({ user }) {
-  const mentors = [
-    { name: "Dr. Ramesh Munda", scheme: "National Overseas Scholarship (NOS)", location: "UK / Jharkhand", status: "Available for Chat", match: "98% Profile Match" },
-    { name: "Suman Oraon", scheme: "Top Class Education Scheme", location: "IIT Delhi", status: "Busy", match: "85% Profile Match" }
-  ];
+  const [mentors, setMentors] = useState([]);
+
+  useEffect(() => {
+    api.getMentors().then(setMentors);
+  }, []);
 
   return (
     <div className="dashboard">
